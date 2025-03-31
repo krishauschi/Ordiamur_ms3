@@ -1,0 +1,66 @@
+#using your phyloseq object (see script "create_phyloseq_object"), we will now clean ou dataset.
+From the 16S data, using psO_16S, we should remove ASVs that were not identified or classified as eukaryota, as well as taxa assigned as Chloroplast or Mitochondria.
+From the ITS data, using psO_ITS, we will remove ASVs that were not identified on phylum level as those are most likey no fungi, but rather plant DNA. 
+
+#load packages
+library("phyloseq")
+library("ggplot2")
+library("dplyr")
+
+#-----------------------------------------------------#
+# for 16S:
+##Create table with number of features for each phylum
+##Remove respective artefacts on a specific taxonomic level (for 16S: Keeping Archaea)
+#Kingdom
+table(tax_table(psO_16S)[,"Kingdom"], exclude = NULL)
+psO_16S <- subset_taxa(psO_16S, !is.na(Kingdom) & !Kingdom %in% c("Unassigned", "Eukaryota", "NA", ""))
+table(tax_table(psO_16S)[,"Kingdom"], exclude = NULL)
+#Phylum
+table(tax_table(psO_16S)[,"Phylum"], exclude = NULL)
+psO_16S <- subset_taxa(psO_16S, !Phylum %in% c("Bacteria", "Archaea"))
+table(tax_table(psO_16S)[,"Phylum"], exclude = NULL)
+#Order
+table(tax_table(psO_16S)[,"Order"], exclude = NULL)
+psO_16S <- subset_taxa(psO_16S, !is.na(Order) & !Order %in% c("Chloroplast"))
+table(tax_table(psO_16S)[,"Order"], exclude = NULL)
+#Family
+table(tax_table(psO_16S)[,"Family"], exclude = NULL)
+psO_16S <- subset_taxa(psO_16S, !is.na(Family) & !Family %in% c("Mitochondria"))
+table(tax_table(psO_16S)[,"Family"], exclude = NULL)
+#Genus
+#table(tax_table(psO_16S)[,"Genus"], exclude = NULL)
+
+#Annotation
+#table(tax_table(psO_16S)[,"Annotation"], exclude = NULL)
+##Observe psO after clean spurious taxa
+psO_16S
+#Compute prevalence of each feature and store as data.frame
+prevdf = apply(X = otu_table(psO_16S),
+               MARGIN = ifelse(taxa_are_rows(psO_16S), yes = 1, no = 2),
+               FUN = function (x) {sum(x>0)})
+
+#Add taxonomy and total reads counts to the data frame
+prevdf = data.frame(Prevalence=prevdf, TotalAbundance = taxa_sums(psO_16S), tax_table(psO_16S), otu_table(psO_16S))
+#Write data frame in csv format
+write.csv(prevdf, "~/my/path/prevdf_psO_16S.csv")
+
+#-----------------------------------------------------------#
+
+# for ITS:
+#remove taxa that are not assigned on phylum level
+psO_ITS <- subset_taxa(psO_ITS, Phylum != "NA")
+psO_ITS
+
+#Annotation
+#table(tax_table(psO_ITS)[,"Annotation"], exclude = NULL)
+##Observe psO after clean spurious taxa
+psO_ITS
+#Compute prevalence of each feature and store as data.frame
+prevdf = apply(X = otu_table(psO_ITS),
+               MARGIN = ifelse(taxa_are_rows(psO_ITS), yes = 1, no = 2),
+               FUN = function (x) {sum(x>0)})
+
+#Add taxonomy and total reads counts to the data frame
+prevdf = data.frame(Prevalence=prevdf, TotalAbundance = taxa_sums(psO_ITS), tax_table(psO_ITS), otu_table(psO_ITS))
+#Write data frame in csv format
+write.csv(prevdf, "~/my/path/prevdf_psO_ITS.csv")
