@@ -1,0 +1,55 @@
+from the dada2 output, you received an ASV table and a taxonomy file. Combine both in an Excel sheet where you can also include the metadata of your samples in a separate sheet.
+
+#load packages
+library("phyloseq")
+library("ggplot2")      
+library("readxl")       
+library("dplyr")        
+library("tibble")        
+library("vegan")
+
+
+# Read the excel file that contains 3 sheets: 
+- sheet "ASV": has ASVs in rows and samples in columns. Each cell contains the read count of an ASV in the respective sample.
+- sheet "taxonomy": has ASVs in rows and taxonomic ranks (Kingdom, Phylum, Class, Order, Family, Genus, Annotation) in columns. Each cell contains the taxonomy of an ASV at the respective rank. The column "Annotation is empty and will be filled later.
+- sheet "samples": has sample names (identical to those in sheet "ASV") in rows and metadata (e.g. microhabitat, treatment, growth parameters, soil parameters, biochemical parameters) in columns  
+otu_mat<- read_excel("phyloseq-table.xlsx", sheet = "ASV")
+tax_mat<- read_excel("phyloseq-table.xlsx", sheet = "taxonomy")
+samples_df <- read_excel("phyloseq-table.xlsx", sheet = "samples")
+
+#Phyloseq objects need to have row.names. Define the row names from the otu column:
+otu_mat <- otu_mat %>%
+  tibble::column_to_rownames("ASV") 
+
+#Idem for the two other matrixes
+tax_mat <- tax_mat %>% 
+  tibble::column_to_rownames("ASV")
+samples_df <- samples_df %>% 
+  tibble::column_to_rownames("sample")
+
+#Transform into matrixes otu and tax tables (sample table can be left as data frame)
+otu_mat <- as.matrix(otu_mat)
+tax_mat <- as.matrix(tax_mat)
+
+#Transform to phyloseq objects
+OTU = otu_table(otu_mat, taxa_are_rows = TRUE)
+TAX = phyloseq::tax_table(tax_mat)
+samples = sample_data(samples_df)
+
+# psO= phyloseq object. We have two datasets, one for 16S and one for ITS amplicons. Add the suffix _16S or _ITS to the respective dataset (psO_16S and psO_ITS). Processing of both datsets is mostly identical.
+psO <- phyloseq(OTU, TAX, samples)
+psO
+
+#Visualize data
+sample_names(psO)
+rank_names(psO)
+sample_variables(psO)
+
+###### 
+#Show available ranks in the dataset 
+rank_names(psO)
+sample_names(psO)
+psO
+
+# Now we have our phyloseq object =)
+# Next, go to the script "remove spurious taxa".
